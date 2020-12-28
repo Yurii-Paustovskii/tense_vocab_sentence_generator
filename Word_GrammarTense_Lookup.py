@@ -8,8 +8,8 @@ nlp = spacy.load("en_core_web_md")
 def get_sents(word, tense):
     result = []                #list of sentences containing the needed word
     res = []                   #final list of word+tense filter
-    forms = []
-    word_nlp = nlp(word)
+    forms = [word.lower()]
+    word_nlp = nlp(word.lower())
     word_nlp_0 = word_nlp[0]
     if word_nlp_0.tag_ in ['VB', 'VBN', 'VBG', 'VBZ', 'VBD']:
         with open('verbs-dictionaries.json') as json_file:
@@ -50,6 +50,9 @@ def get_sents(word, tense):
         elif re.search(r'is\b', word_nlp_0.text):
             plural = re.sub(r'is\b', r'es', word_nlp_0.text)
             forms.append(plural)
+        else:
+            plural = word_nlp_0.text + 's'
+            forms.append((plural))
 
 
     print('searching for these forms =', forms)
@@ -62,45 +65,25 @@ def get_sents(word, tense):
             for i in range(len(sents)):
                 result.append(sents[i].text_content())
     print('in total of ',len(result), 'sentences')
+    rules = {
+        'Present_Simple': lambda token: token.tag_ in ['VBP', 'VBZ'] and token.dep_ == 'ROOT',
+        'Present_Continuous': lambda token: re.search(r'be', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBG' and token.text in ["'m", "'re", "'s", "am", "are", "is"] and not 'have' in [i.lemma_ for i in token.head.children] and not 'xcomp' in [i.dep_ for i in token.head.children],
+        'Present_Perfect': lambda token: re.search(r'have', token.lemma_) and token.dep_ == 'aux' and not token.head.text == 'got' and token.head.tag_ == 'VBN' and not re.search(r'd', token.text) and not re.search(r'(\'d|would|might|may|could)', str([i.lemma_ for i in token.head.children])),
+        'Present_Perfect_Continuous': lambda token: re.search(r'have', token.lemma_) and token.dep_ == 'aux' and not token.head.text == 'got' and token.head.tag_ == 'VBG' and not re.search(r'd', token.text),
+        'Past_Simple': lambda token: token.tag_ == 'VBD' and token.dep_ == 'ROOT' or token.text in ['Did', 'did'],
+        'Past_Continuous': lambda token: re.search(r'be', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBG' and token.text in ['were', 'was'] and not 'have' in [i.lemma_ for i in token.head.children] and not 'xcomp' in [i.dep_ for i in token.head.children],
+        'Past_Perfect': lambda token: re.search(r'have', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBN' and not re.search(r'(s|v)', token.text),
+        'Past_Perfect_Continuous': lambda token: re.search(r'have', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBG' and not re.search(r'(s|v)', token.text),
+        'Future_Simple': lambda token: re.search(r'will', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBP',
+        'Future_Continuous': lambda token: re.search(r'will', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBG' and not 'have' in [i.text for i in token.head.children] and not 'xcomp' in [i.dep_ for i in token.head.children],
+        'Future_Perfect': lambda token: re.search(r'will', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBN' and 'have' in [i.text for i in token.head.children] and not 'xcomp' in [i.dep_ for i in token.head.children],
+        'Future_Perfect_Continuous': lambda token: re.search(r'will', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBG' and 'have' in [i.text for i in token.head.children]
+    }
     for sentence in result:
         sentence_nlp = nlp(str(sentence))
         for token in sentence_nlp:
-            if tense == 'Present_Simple':
-                if token.tag_ in ['VBP','VBZ'] and token.dep_ == 'ROOT':
-                    res.append(str(sentence))
-            if tense == "Present_Continuous":
-                if re.search(r'be', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBG' and token.text in ["'m", "'re", "'s", "am", "are", "is"] and not 'have' in [i.lemma_ for i in token.head.children] and not 'xcomp' in [i.dep_ for i in token.head.children]:
-                    res.append(str(sentence))
-            if tense == 'Present_Perfect':
-                if re.search(r'have', token.lemma_) and token.dep_ == 'aux' and not token.head.text == 'got' and token.head.tag_ == 'VBN' and not re.search(r'd', token.text):
-                    res.append(str(sentence))
-            if tense == 'Present_Perfect_Continuous':
-                if re.search(r'have', token.lemma_) and token.dep_ == 'aux' and not token.head.text == 'got' and token.head.tag_ == 'VBG' and not re.search(r'd', token.text):
-                    res.append(str(sentence))
-            if tense == 'Past_Simple':
-                if token.tag_ == 'VBD' and token.dep_ == 'ROOT' or token.text in ['Did', 'did']:
-                    res.append(str(sentence))
-            if tense == "Past_Continuous":
-                if re.search(r'be', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBG' and token.text in ['were', 'was'] and not 'have' in [i.lemma_ for i in token.head.children] and not 'xcomp' in [i.dep_ for i in token.head.children]:
-                    res.append(str(sentence))
-            if tense == 'Past_Perfect':
-                if re.search(r'have', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBN' and not re.search(r'(s|v)', token.text):
-                    res.append(str(sentence))
-            if tense == 'Past_Perfect_Continuous':
-                if re.search(r'have', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBG' and not re.search(r'(s|v)', token.text):
-                    res.append(str(sentence))
-            if tense == "Future_Simple":
-                if re.search(r'will', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBP':
-                    res.append(str(sentence))
-            if tense == "Future_Continuous":
-                if re.search(r'will', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBG' and not 'have' in [i.text for i in token.head.children] and not 'xcomp' in [i.dep_ for i in token.head.children]:
-                    res.append(str(sentence))
-            if tense == "Future_Perfect":
-                if re.search(r'will', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBN' and 'have' in [i.text for i in token.head.children] and not 'xcomp' in [i.dep_ for i in token.head.children]:
-                    res.append(str(sentence))
-            if tense == "Future_Perfect_Continuous":
-                if re.search(r'will', token.lemma_) and token.dep_ == 'aux' and token.head.tag_ == 'VBG' and 'have' in [i.text for i in token.head.children]:
-                    res.append(str(sentence))
+            if rules[tense](token):
+                res.append(str(sentence))
     res = list(set(res))
     if res:
         res_string = '\n'.join(res)
