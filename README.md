@@ -18,3 +18,7 @@ Enjoy!
 - Future_Continuous
 - Future_Perfect
 - Future_Perfect_Continuous)
+
+Requirements:
+- Python
+- SpaCy
