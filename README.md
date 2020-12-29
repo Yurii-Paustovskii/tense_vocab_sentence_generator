@@ -5,6 +5,9 @@ As a result, you're gonna have a .txt file with the sentences that feature both 
 Be sure to download the .json file as well for advanced verb search.
 Enjoy!
 
+Command example: 
+$ Word_GrammarTense_Lookup.py accountant Past_Simple
+
 (List of the featured tense names:
 - Present_Simple
 - Present_Continuous
